@@ -1,0 +1,416 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+
+const BOOKS = [ { id: 1, title: "Atomic Habits", author: "James Clear", category: "Self Help", image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop", downloadUrl: "/books/atomic-habits.pdf", }, { id: 2, title: "Clean Code", author: "Robert C. Martin", category: "Programming", image: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=600&auto=format&fit=crop", downloadUrl: "/books/clean-code.pdf", }, { id: 3, title: "Deep Work", author: "Cal Newport", category: "Productivity", image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=600&auto=format&fit=crop", downloadUrl: "/books/deep-work.pdf", }, ];
+
+const CATEGORIES = ["All", "Programming", "Self Help", "Productivity"];
+
+function Toast({ message, onClose }) { useEffect(() => { const timer = setTimeout(onClose, 3000);
+
+return (
+<div className="min-h-screen bg-black text-white">) => clearTimeout(timer);
+
+}, [onClose]);
+
+return ( <div className="fixed top-5 right-5 z-50 rounded-xl border border-yellow-500 bg-black/90 px-4 py-3 text-sm text-yellow-300 shadow-2xl backdrop-blur"> {message} </div> ); }
+
+function Header({ search, setSearch }) { return ( <header className="sticky top-0 z-40 border-b border-zinc-800 bg-black/80 backdrop-blur"> <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4"> <div> <h1 className="text-2xl font-bold text-yellow-400">BookVault</h1> <p className="text-sm text-zinc-400">Bug-free React book platform</p> </div>
+
+<input
+      aria-label="Search books"
+      type="text"
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search books..."
+      className="w-full max-w-xs rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-white outline-none transition focus:border-yellow-500"
+    />
+  </div>
+</header>
+
+); }
+
+function BookCard({ book, isFavorite, onFavorite, onDownload }) { return ( <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-lg transition hover:-translate-y-1 hover:border-yellow-500"> <img
+src={book.image}
+alt={book.title}
+className="h-56 w-full object-cover"
+/>
+
+<div className="space-y-3 p-4">
+    <div>
+      <h2 className="text-lg font-semibold text-white">{book.title}</h2>
+      <p className="text-sm text-zinc-400">{book.author}</p>
+    </div>
+
+    <div className="flex items-center justify-between">
+      <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300">
+        {book.category}
+      </span>
+
+      <button
+        aria-label="Toggle favorite"
+        onClick={() => onFavorite(book.id)}
+        className="text-xl"
+      >
+        {isFavorite ? "❤️" : "🤍"}
+      </button>
+    </div>
+
+    <button
+      onClick={() => onDownload(book)}
+      className="w-full rounded-xl bg-yellow-500 px-4 py-2 font-medium text-black transition hover:bg-yellow-400"
+    >
+      Download
+    </button>
+  </div>
+</div>
+
+); }
+
+function UploadPanel({ showToast }) { const fileInputRef = useRef(null); const dragCounter = useRef(0);
+
+const [drag, setDrag] = useState(false); const [submitted, setSubmitted] = useState(false);
+
+const [form, setForm] = useState({ title: "", author: "", file: null, });
+
+const MAX_SIZE = 20 * 1024 * 1024;
+
+const allowedTypes = [ "application/pdf", "application/epub+zip", ];
+
+const resetForm = () => { setForm({ title: "", author: "", file: null, }); };
+
+const handleFile = (file) => { if (!file) return;
+
+if (!allowedTypes.includes(file.type)) {
+  showToast("Only PDF and EPUB files allowed");
+  return;
+}
+
+if (file.size > MAX_SIZE) {
+  showToast("File size exceeds 20MB");
+  return;
+}
+
+setForm((prev) => ({
+  ...prev,
+  file,
+}));
+
+};
+
+const handleSubmit = (e) => { e.preventDefault();
+
+if (!form.title.trim()) {
+  showToast("Title required");
+  return;
+}
+
+if (!form.author.trim()) {
+  showToast("Author required");
+  return;
+}
+
+if (!form.file) {
+  showToast("Please select a file");
+  return;
+}
+
+setSubmitted(true);
+
+setTimeout(() => {
+  setSubmitted(false);
+  resetForm();
+}, 2500);
+
+};
+
+return ( <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6"> <h2 className="mb-5 text-2xl font-bold text-white">Upload Book</h2>
+
+<form className="space-y-4" onSubmit={handleSubmit}>
+    <input
+      type="text"
+      placeholder="Book title"
+      value={form.title}
+      onChange={(e) =>
+        setForm((prev) => ({
+          ...prev,
+          title: e.target.value,
+        }))
+      }
+      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-yellow-500"
+    />
+
+    <input
+      type="text"
+      placeholder="Author name"
+      value={form.author}
+      onChange={(e) =>
+        setForm((prev) => ({
+          ...prev,
+          author: e.target.value,
+        }))
+      }
+      className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-yellow-500"
+    />
+
+    <div
+      onDragEnter={() => {
+        dragCounter.current += 1;
+        setDrag(true);
+      }}
+      onDragLeave={() => {
+        dragCounter.current -= 1;
+
+        if (dragCounter.current === 0) {
+          setDrag(false);
+        }
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragCounter.current = 0;
+        setDrag(false);
+
+        const file = e.dataTransfer.files[0];
+        handleFile(file);
+      }}
+      className={`rounded-2xl border-2 border-dashed p-8 text-center transition ${
+        drag
+          ? "border-yellow-500 bg-yellow-500/10"
+          : "border-zinc-700"
+      }`}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.epub"
+        hidden
+        onChange={(e) => handleFile(e.target.files[0])}
+      />
+
+      <p className="mb-4 text-zinc-300">
+        {form.file
+          ? `Selected: ${form.file.name}`
+          : "Drag & drop PDF/EPUB here"}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="rounded-xl bg-yellow-500 px-5 py-2 font-medium text-black"
+      >
+        Choose File
+      </button>
+    </div>
+
+    <button
+      type="submit"
+      className="w-full rounded-xl bg-yellow-500 py-3 font-semibold text-black transition hover:bg-yellow-400"
+    >
+      Upload Book
+    </button>
+
+    {submitted && (
+      <div className="rounded-xl border border-green-500 bg-green-500/10 p-3 text-sm text-green-300">
+        Upload submitted successfully
+      </div>
+    )}
+  </form>
+</section>
+
+); }
+
+export default function BookVault() { const ADMIN_EMAIL = "admin@bookvault.com"; const ADMIN_PASSWORD = "Admin@123"; const [search, setSearch] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [user, setUser] = useState(null); const [isAdmin, setIsAdmin] = useState(false); const [category, setCategory] = useState("All"); const [toast, setToast] = useState(null);
+
+const [favorites, setFavorites] = useState(() => { const saved = localStorage.getItem("favorites"); return saved ? JSON.parse(saved) : []; });
+
+useEffect(() => { localStorage.setItem("favorites", JSON.stringify(favorites)); }, [favorites]);
+
+const handleLogin = (e) => { e.preventDefault();
+
+if (!email.trim() || !password.trim()) {
+  setToast("Email and password required");
+  return;
+}
+
+const loggedUser = {
+  email,
+};
+
+setUser(loggedUser);
+
+if (
+  email === ADMIN_EMAIL &&
+  password === ADMIN_PASSWORD
+) {
+  setIsAdmin(true);
+  setToast("Admin login successful");
+} else {
+  setIsAdmin(false);
+  setToast("User login successful");
+}
+
+setEmail("");
+setPassword("");
+
+};
+
+const logout = () => { setUser(null); setIsAdmin(false); setToast("Logged out"); };
+
+const showToast = (message) => { setToast(message); };
+
+const toggleFavorite = (id) => { setFavorites((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id] ); };
+
+const handleDownload = (book) => { if (!book.downloadUrl) { showToast("Download unavailable"); return; }
+
+window.open(book.downloadUrl, "_blank", "noopener,noreferrer");
+
+};
+
+const filteredBooks = useMemo(() => { return BOOKS.filter((book) => { const matchesSearch = book.title.toLowerCase().includes(search.toLowerCase()) || book.author.toLowerCase().includes(search.toLowerCase());
+
+const matchesCategory =
+    category === "All" || book.category === category;
+
+  return matchesSearch && matchesCategory;
+});
+
+}, [search, category]);
+
+return ( <div className="min-h-screen bg-black text-white"> {!user ? ( <div className="flex min-h-screen items-center justify-center px-4"> <form
+onSubmit={handleLogin}
+className="w-full max-w-md space-y-5 rounded-3xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl"
+> <div> <h1 className="text-3xl font-bold text-yellow-400"> BookVault Login </h1> <p className="mt-2 text-sm text-zinc-400"> Admin gets dashboard access. Users get normal website. </p> </div>
+
+<input
+          type="email"
+          placeholder="Enter email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-yellow-500"
+        />
+
+        <input
+          type="password"
+          placeholder="Enter password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-xl border border-zinc-700 bg-black px-4 py-3 text-white outline-none focus:border-yellow-500"
+        />
+
+        <button
+          type="submit"
+          className="w-full rounded-xl bg-yellow-500 py-3 font-semibold text-black transition hover:bg-yellow-400"
+        >
+          Login
+        </button>
+
+        <div className="rounded-xl border border-zinc-800 bg-black/50 p-4 text-xs text-zinc-400">
+          <p>Admin Email: admin@bookvault.com</p>
+          <p>Admin Password: Admin@123</p>
+        </div>
+      </form>
+    </div>
+  ) : (
+    <>
+      <Header search={search} setSearch={setSearch} />
+
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 pt-6">
+        <div>
+          <p className="text-sm text-zinc-400">
+            Logged in as
+          </p>
+          <h2 className="font-semibold text-white">
+            {user.email}
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <span className="rounded-full bg-red-500/10 px-4 py-2 text-sm text-red-300">
+              Admin Panel Enabled
+            </span>
+          )}
+
+          <button
+            onClick={logout}
+            className="rounded-xl bg-zinc-800 px-4 py-2 text-sm text-white transition hover:bg-zinc-700"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+
+  <main className="mx-auto max-w-7xl space-y-10 px-4 py-8">
+    <section className="flex flex-wrap gap-3">
+      {CATEGORIES.map((item) => (
+        <button
+          key={item}
+          onClick={() => setCategory(item)}
+          className={`rounded-full px-4 py-2 text-sm transition ${
+            category === item
+              ? "bg-yellow-500 text-black"
+              : "bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+          }`}
+        >
+          {item}
+        </button>
+      ))}
+    </section>
+
+    <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {filteredBooks.length > 0 ? (
+        filteredBooks.map((book) => (
+          <BookCard
+            key={book.id}
+            book={book}
+            isFavorite={favorites.includes(book.id)}
+            onFavorite={toggleFavorite}
+            onDownload={handleDownload}
+          />
+        ))
+      ) : (
+        <div className="col-span-full rounded-2xl border border-zinc-800 bg-zinc-900 p-10 text-center text-zinc-400">
+          No books found
+        </div>
+      )}
+    </section>
+
+    <UploadPanel showToast={showToast} />
+
+    {isAdmin && (
+      <section className="rounded-2xl border border-red-500/30 bg-red-500/5 p-6">
+        <h2 className="mb-4 text-2xl font-bold text-red-300">
+          Admin Dashboard
+        </h2>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
+            <p className="text-sm text-zinc-400">Total Books</p>
+            <h3 className="mt-2 text-3xl font-bold text-white">
+              {BOOKS.length}
+            </h3>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
+            <p className="text-sm text-zinc-400">Favorites</p>
+            <h3 className="mt-2 text-3xl font-bold text-white">
+              {favorites.length}
+            </h3>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-black/40 p-5">
+            <p className="text-sm text-zinc-400">Admin Access</p>
+            <h3 className="mt-2 text-xl font-bold text-green-400">
+              Active
+            </h3>
+          </div>
+        </div>
+      </section>
+    )}
+  </main>
+    </>
+  )
+
+  {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+</div>
+
+); }
